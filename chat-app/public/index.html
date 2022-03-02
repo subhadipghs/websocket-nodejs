@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Chat App</title>
+    <script src="/socket.io/socket.io.js"></script>
+  </head>
+  <body>
+    <h3 style="font-family: sans-serif">Websocket Chat App</h3>
+    <!-- form -->
+    <form id="username" action="">
+      <input name="box" id="box" placeholder="Enter your username" />
+      <button type="submit">Submit</button>
+    </form>
+    <!-- chat box -->
+    <form id="chatbox" action="" style="margin-top: 10px">
+      <input name="msg-box" id="msg" placeholder="type here..." />
+      <button type="submit">Send</button>
+    </form>
+    <!-- chats -->
+    <div id="chat" style="margin-top: 40px"></div>
+
+    <!-- on typing -->
+    <div id="whoistyping" style="margin-top: 20px"></div>
+
+    <script>
+      let socket = io()
+      const form = document.querySelector("#username")
+      const input = document.querySelector("#box")
+      const msgForm = document.querySelector("#chatbox")
+      const msgInput = document.querySelector("#msg")
+
+      // on user name send
+      form.addEventListener("submit", function (e) {
+        e.preventDefault()
+        socket.emit("add", { name: input.value })
+      })
+      // on message
+      msgForm.addEventListener("submit", function (e) {
+        e.preventDefault()
+        socket.emit("msg", { msg: msgInput.value })
+        const chatList = document.getElementById("chat")
+      })
+      // input changing emit typing event
+      msgInput.addEventListener("keypress", (e) => {
+        console.log("user is typing..")
+        socket.emit("typing", { typing: true })
+      })
+      // when user is not typing means input box is in out of focus
+      msgInput.addEventListener("focusout", (e) => {
+        console.log("user is not typing..")
+        socket.emit("typing", { typing: false })
+      })
+
+      socket.on("msg", (m) => {
+        const chatList = document.getElementById("chat")
+        const li = document.createElement("li")
+        const text = document.createTextNode(
+          "user: " + m.uid + " msg: " + m.msg
+        )
+        li.appendChild(text)
+        li.style.margin = "5px"
+        chatList.appendChild(li)
+      })
+
+      // on receiving typing event
+      socket.on("typing", (m) => {
+        const typingE = document.querySelector("#whoistyping")
+        if (m.typing) {
+          typingE.innerHTML = `${m.uid} is typing... 🐕`
+        } else {
+          typingE.innerHTML = ''
+        }
+      })
+    </script>
+  </body>
+</html>
