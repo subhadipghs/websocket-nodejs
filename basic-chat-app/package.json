@@ -6,14 +6,20 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon --exec node index.js"
+    "dev": "nodemon --exec node index.js",
+    "test": "tape tests/**/*.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.3",
+    "mongodb": "^4.4.0",
     "nodemon": "^2.0.15",
-    "socket.io": "^4.4.1"
+    "socket.io": "^4.4.1",
+    "socket.io-client": "^4.4.1"
+  },
+  "devDependencies": {
+    "tape": "^5.5.2"
   }
 }
