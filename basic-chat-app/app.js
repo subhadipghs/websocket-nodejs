@@ -16,8 +16,7 @@ function buildServer(app, callback) {
 }
 
 
-function buildEvents(socket) {
-  const users = new Map()
+function buildEvents(socket, users) {
   // add a user inside the db
   socket.on("add", (user) => {
     console.log("Adding user " + user.name + " with id " + socket.id)
@@ -53,6 +52,10 @@ function buildEvents(socket) {
   })
 }
 
-const { server, io } = buildServer(app, buildEvents)
+const users = new Map() // store all the users
+const events = socket => buildEvents(socket, users)
 
-export { io, buildServer, server }
+const { server, io } = buildServer(app, events)
+
+
+export { io, buildServer, buildEvents, server }
