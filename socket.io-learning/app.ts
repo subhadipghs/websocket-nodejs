@@ -80,11 +80,10 @@ class WsServerImpl extends EventEmitter implements WsServer {
     // join the sockets group
     socket.on("join", ({ name }) => {
       this.store.addUser(socket.id, name);
-      socket.join(socket.id);
     });
-    // get message
-    socket.on("message", ({ to, msg }) => {
-      socket.to(to).emit("message", { to, msg });
+    // send private message to particular user
+    socket.on("message", (toSocketId, msg) => {
+      socket.to(toSocketId).emit("message", socket.id, msg);
     });
   }
 }
