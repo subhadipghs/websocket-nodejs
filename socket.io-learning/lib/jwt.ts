@@ -1,18 +1,24 @@
 import jwt from "jsonwebtoken";
 
 interface GetTokenOpts {
-  secret: string;
+  secret?: string;
   payload: string | object | Buffer;
   expiresIn?: string | number;
 }
 
 interface VerifyTokenOpts {
   token: string;
-  secret: string;
+  secret?: string;
 }
 
+const defaultSecret = "secret";
+
 // generate a jwt token
-export function getToken({ secret, payload, expiresIn = 3600 }: GetTokenOpts) {
+export function getToken({
+  secret = defaultSecret,
+  payload,
+  expiresIn = 3600,
+}: GetTokenOpts) {
   return new Promise((resolve, reject) => {
     jwt.sign(
       payload,
@@ -35,7 +41,10 @@ export function getToken({ secret, payload, expiresIn = 3600 }: GetTokenOpts) {
 }
 
 // verify a token
-export function verifyToken({ token, secret }: VerifyTokenOpts) {
+export function verifyToken({
+  token,
+  secret = defaultSecret,
+}: VerifyTokenOpts) {
   return new Promise((resolve, reject) => {
     jwt.verify(
       token,

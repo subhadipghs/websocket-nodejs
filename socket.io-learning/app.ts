@@ -3,7 +3,9 @@ import http, { createServer } from "node:http";
 import { EventEmitter } from "node:events";
 import { Server, Socket } from "socket.io";
 import { Store } from "./store";
-import { DefaultEventsMap } from "socket.io/dist/typed-events";
+import { verifyToken } from "./lib/jwt";
+import { JsonWebTokenError, verify } from "jsonwebtoken";
+import { Config } from "./config";
 
 const app = App();
 const server = createServer(app);
@@ -18,7 +20,7 @@ interface WsServer {
   // events
   on(event: "listening", cb: (port: number) => void): void;
   on(event: "connection", cb: (id: string) => void): void;
-  on(event: "error", cb: (err: any) => void): void;
+  on(event: "onerror", cb: (err: any) => void): void;
 }
 
 class WsServerImpl extends EventEmitter implements WsServer {
@@ -36,7 +38,6 @@ class WsServerImpl extends EventEmitter implements WsServer {
     this.onListening = this.onListening.bind(this);
     // listen to websocket server events
     this.listen();
-    this.middlewares();
   }
 
   public listen() {
@@ -63,22 +64,31 @@ class WsServerImpl extends EventEmitter implements WsServer {
 
   private middlewares() {
     this.ws.use((socket, next) => {
-      const token = socket.handshake.auth.token;
-      if (!token) {
-        next(new Error("Oops! token is required"));
+      try {
+        const token = socket.handshake.auth.token;
+        if (!token) {
+          return next(new Error("Oops! token is required"));
+        }
+        const isVerified = verify(token, Config.jwtSecret);
+        if (isVerified) {
+          next();
+        } else {
+          return next(new Error("decoded token not found"));
+        }
+      } catch (e) {
+        next(new Error("invalid token"));
       }
-      // else ok
-      next();
     });
   }
 
   private onConnection(socket: Socket) {
+    this.middlewares();
     this.emit("connection", socket);
     this.getSocketHandlers(socket);
   }
 
   private onError(err: any) {
-    this.emit("error", err);
+    this.emit("onerror", err);
   }
 
   private onListening() {

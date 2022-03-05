@@ -4,15 +4,24 @@ import { WsServerImpl, server as httpServer } from "../app";
 import { Socket } from "socket.io";
 import { MemoryStoreImpl, Store } from "../store";
 import { users } from "./fixtures/user.fixture";
-import { getToken } from "../lib/jwt";
+import jwt from "jsonwebtoken";
+import { Config } from "../config";
 
-let store: Store, ws: WsServerImpl, port: number, server: Socket, client: any;
-
-const tokenSecretFixture = "sshh! do not tell anyone this!";
+let token: string,
+  store: Store,
+  ws: WsServerImpl,
+  port: number,
+  server: Socket,
+  client: any;
 
 test("setup", (t) => {
   store = new MemoryStoreImpl();
   ws = new WsServerImpl(httpServer, store);
+  token = jwt.sign(users[0], Config.jwtSecret, {
+    expiresIn: Config.expiresIn,
+    algorithm: "HS256",
+  });
+  t.ok(token);
   port = ws.getPort();
   ws.start();
   ws.on("connection", (socket) => {
@@ -20,9 +29,10 @@ test("setup", (t) => {
   });
   client = Client("http://localhost:" + port, {
     auth: {
-      token: "abc",
+      token,
     },
   });
+
   client.on("connect", t.end);
   client.on("connect_error", (e: Error) => {
     t.fail("Setup Failed! Client could not connect to the server");
@@ -48,12 +58,15 @@ test("send private message correctly", (t) => {
   t.plan(2);
   const client2 = Client("http://localhost:" + port, {
     auth: {
-      token: "hello there!",
+      token,
     },
   });
   const msg = "hello";
   client2.on("connect", () => {
     client.emit("message", client2.id, msg);
+  });
+  client2.on("connect_error", () => {
+    t.fail("oops! client2 could not connect");
   });
   client2.on("message", (id, message) => {
     t.equal(message, msg, "message content should be same");
@@ -74,18 +87,22 @@ test("should authenticate user before adding them to users group", (t) => {
   });
 });
 
-// test("should verify the users token before connection", async (t) => {
-//   t.timeoutAfter(10000);
-//   const client2 = Client("http://localhost:" + port, {
-//     auth: {
-//       token: "hahaha! i am not a valid token",
-//     },
-//   });
-//   client2.on("connect_error", (e: Error) => {
-//     t.equal(e.message, "Invalid token provided");
-//     t.end();
-//   });
-// });
+test("should verify the users token before connection", (t) => {
+  t.timeoutAfter(10000);
+  const clnt = Client("http://localhost:" + port, {
+    auth: {
+      token: "oops! not a valid token",
+    },
+  });
+  clnt.on("connect", () => {
+    t.fail("should not connect");
+    t.end();
+  });
+  clnt.on("connect_error", (e) => {
+    t.equal(e.message, "invalid token");
+    t.end();
+  });
+});
 
 test.onFinish(() => {
   ws.close();
