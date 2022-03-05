@@ -3,10 +3,12 @@ import Client from "socket.io-client";
 import { WsServerImpl, server as httpServer } from "../app";
 import { Socket } from "socket.io";
 import { MemoryStoreImpl, Store } from "../store";
+import { users } from "./fixtures/user.fixture";
+import { getToken } from "../lib/jwt";
 
-let store: Store, ws: WsServerImpl, port: number;
+let store: Store, ws: WsServerImpl, port: number, server: Socket, client: any;
 
-let server: Socket, client: any;
+const tokenSecretFixture = "sshh! do not tell anyone this!";
 
 test("setup", (t) => {
   store = new MemoryStoreImpl();
@@ -71,6 +73,19 @@ test("should authenticate user before adding them to users group", (t) => {
     t.end();
   });
 });
+
+// test("should verify the users token before connection", async (t) => {
+//   t.timeoutAfter(10000);
+//   const client2 = Client("http://localhost:" + port, {
+//     auth: {
+//       token: "hahaha! i am not a valid token",
+//     },
+//   });
+//   client2.on("connect_error", (e: Error) => {
+//     t.equal(e.message, "Invalid token provided");
+//     t.end();
+//   });
+// });
 
 test.onFinish(() => {
   ws.close();
