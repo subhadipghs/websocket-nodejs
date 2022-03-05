@@ -16,8 +16,15 @@ test("setup", (t) => {
   ws.on("connection", (socket) => {
     server = socket;
   });
-  client = Client("http://localhost:" + port);
+  client = Client("http://localhost:" + port, {
+    auth: {
+      token: "abc",
+    },
+  });
   client.on("connect", t.end);
+  client.on("connect_error", (e: Error) => {
+    t.fail("Setup Failed! Client could not connect to the server");
+  });
 });
 
 test("should join a user correctly", (t) => {
@@ -35,8 +42,13 @@ test("should join a user correctly", (t) => {
 });
 
 test("send private message correctly", (t) => {
+  t.timeoutAfter(10000);
   t.plan(2);
-  const client2 = Client("http://localhost:" + port);
+  const client2 = Client("http://localhost:" + port, {
+    auth: {
+      token: "hello there!",
+    },
+  });
   const msg = "hello";
   client2.on("connect", () => {
     client.emit("message", client2.id, msg);
@@ -47,6 +59,16 @@ test("send private message correctly", (t) => {
   });
   t.teardown(() => {
     client2.close();
+  });
+});
+
+test("should authenticate user before adding them to users group", (t) => {
+  t.plan(1);
+  t.timeoutAfter(10000);
+  const client2 = Client("http://localhost:" + port);
+  client2.on("connect_error", (e: Error) => {
+    t.equal(e.message, "Oops! token is required");
+    t.end();
   });
 });
 

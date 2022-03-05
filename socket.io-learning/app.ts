@@ -61,7 +61,16 @@ class WsServerImpl extends EventEmitter implements WsServer {
     this.server.close();
   }
 
-  private middlewares() {}
+  private middlewares() {
+    this.ws.use((socket, next) => {
+      const token = socket.handshake.auth.token;
+      if (!token) {
+        next(new Error("Oops! token is required"));
+      }
+      // else ok
+      next();
+    });
+  }
 
   private onConnection(socket: Socket) {
     this.emit("connection", socket);
